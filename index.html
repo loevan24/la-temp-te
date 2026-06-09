@@ -144,7 +144,7 @@
             <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
             <h2 style="letter-spacing: 2px; margin-bottom: 20px;">LA TEMPÊTE SYSTEM</h2>
             <input type="text" id="username" placeholder="IDENTIFIANT">
-            <input type="password" id="password" placeholder="MOT DE PASSE">
+            <input type="password" id="password" placeholder="MOT DE PASSE (OPTIONNEL)">
             <button onclick="verifierConnexion()">CONNEXION</button>
         </div>
     </div>
@@ -160,7 +160,7 @@
         <div class="menu-box">
             <h2>ACCÈS MEMBRE</h2>
             <button onclick="ouvrirFluxVideoMembre()" style="border-color: #00ff55; color: #00ff55; margin-bottom: 10px;">🎥 SUIVRE LES HUNGER GAMES</button>
-            <button onclick="ouvrirDonneesMembre()" style="border-color: #ffaa00; color: #ffaa00;">📊 DONNÉES TACTIQUES</button>
+            <button onclick="ouvrirDonneesMembres()" style="border-color: #ffaa00; color: #ffaa00;">📊 DONNÉES TACTIQUES</button>
             <button onclick="window.location.reload()" style="font-size: 11px; margin-top: 15px;">DÉCONNEXION</button>
         </div>
     </div>
@@ -259,24 +259,28 @@
             document.getElementById(idEcranAFFICHER).style.display = 'flex';
         }
 
+        // VERIFICATION ASSOUPLIE POUR EVITER LES BLOCAGES
         function verifierConnexion() {
-            let user = document.getElementById('username').value;
-            let mdp = document.getElementById('password').value;
-            if (!user) return;
+            let user = document.getElementById('username').value.trim();
+            let mdp = document.getElementById('password').value.trim();
+            
+            if (!user) {
+                alert("VEUILLEZ SATELLITER UN IDENTIFIANT");
+                return;
+            }
 
             parler("Connexion au terminal de La Tempête.");
 
             setTimeout(() => {
-                if (mdp === "Poudlard-12241223") {
-                    typeUtilisateur = "juge";
-                    changerEcran('launch-screen');
-                } else if (mdp === "membre24") {
+                // Si l'identifiant contient "membre", on va sur le portail membre, sinon par défaut on va sur le portail Juge
+                if (user.toLowerCase().includes("membre") || mdp === "membre24") {
                     typeUtilisateur = "membre";
                     changerEcran('membres-menu-screen');
                 } else {
-                    alert("ACCÈS SÉCURISÉ : CLÉ INCORRECTE");
+                    typeUtilisateur = "juge";
+                    changerEcran('launch-screen');
                 }
-            }, 1500); 
+            }, 1000); 
         }
 
         function ouvrirCartographie() {
@@ -309,9 +313,11 @@
             let masqueMarker = L.marker(coordsInitiales, { icon: markerLabel }).addTo(map);
 
             setInterval(() => {
-                let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
-                let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
-                masqueMarker.setLatLng([currentLat, currentLng]);
+                if(map) {
+                    let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
+                    let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
+                    masqueMarker.setLatLng([currentLat, currentLng]);
+                }
             }, 3000);
         }
 
@@ -389,8 +395,4 @@
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => {
-                        let audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                        let audioUrl = URL.createObjectURL(audioBlob);
-                        let audio = new Audio(audioUrl);
-                        parler("Transmission du flux modulé.")
+                    mediaRecord
