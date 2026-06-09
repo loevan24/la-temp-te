@@ -4,154 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
     <title>La Tempête - Tactical System</title>
-    
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        :root {
-            --cyan-hopo: #00f0ff;
-            --blue-glow: rgba(0, 240, 255, 0.5);
-            --bg-trans-dark: rgba(2, 12, 28, 0.95);
-        }
-
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: #010610;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            color: var(--cyan-hopo);
-            overflow: hidden;
-        }
-
-        .hologram-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0, 240, 255, 0.05) 50%, rgba(0, 0, 0, 0.2) 50%);
-            background-size: 100% 3px;
-            z-index: 9999; pointer-events: none;
-            box-shadow: inset 0 0 40px rgba(0, 240, 255, 0.2);
-        }
-
-        .screen {
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;
-            background: radial-gradient(circle, rgba(0,80,150,0.2) 0%, rgba(1,6,16,1) 100%);
-            position: absolute; top: 0; left: 0; z-index: 10;
-        }
-
-        .login-box, .menu-box {
-            background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo);
-            box-shadow: 0 0 30px var(--blue-glow); padding: 30px; border-radius: 16px;
-            text-align: center; width: 100%; max-width: 380px; backdrop-filter: blur(8px);
-        }
-
-        input {
-            width: 100%; padding: 12px; margin: 12px 0; box-sizing: border-box;
-            background: rgba(0, 40, 80, 0.3); border: 1px solid var(--cyan-hopo);
-            color: var(--cyan-hopo); border-radius: 8px; font-size: 16px; text-align: center;
-        }
-
-        button {
-            width: 100%; padding: 14px; margin: 8px 0; background: rgba(0, 240, 255, 0.1);
-            border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo);
-            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
-        }
-
+        :root { --cyan-hopo: #00f0ff; --blue-glow: rgba(0, 240, 255, 0.5); --bg-trans-dark: rgba(2, 12, 28, 0.95); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #010610; font-family: 'Segoe UI', Roboto, sans-serif; color: var(--cyan-hopo); overflow: hidden; }
+        .hologram-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0, 240, 255, 0.05) 50%, rgba(0, 0, 0, 0.2) 50%); background-size: 100% 3px; z-index: 9999; pointer-events: none; box-shadow: inset 0 0 40px rgba(0, 240, 255, 0.2); }
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 10; background: radial-gradient(circle, rgba(0,80,150,0.2) 0%, rgba(1,6,16,1) 100%); }
+        .login-box, .menu-box { background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); box-shadow: 0 0 30px var(--blue-glow); padding: 30px; border-radius: 16px; text-align: center; width: 100%; max-width: 380px; }
+        input { width: 100%; padding: 12px; margin: 12px 0; box-sizing: border-box; background: rgba(0, 40, 80, 0.3); border: 1px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 8px; text-align: center; font-size: 16px; }
+        button { width: 100%; padding: 14px; margin: 8px 0; background: rgba(0, 240, 255, 0.1); border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
         #juge-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 5; }
-        #hud-header {
-            background: var(--bg-trans-dark); padding: 14px; text-align: center;
-            border-bottom: 2px solid var(--cyan-hopo); font-weight: 900; letter-spacing: 3px;
-            position: relative; z-index: 5000; box-shadow: 0 0 15px var(--blue-glow);
-        }
-        .btn-edit-code {
-            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-            background: transparent; border: 1px solid var(--cyan-hopo); color: var(--cyan-hopo);
-            padding: 6px 14px; cursor: pointer; font-weight: bold; z-index: 5001;
-        }
-
+        #hud-header { background: var(--bg-trans-dark); padding: 14px; text-align: center; border-bottom: 2px solid var(--cyan-hopo); font-weight: 900; letter-spacing: 3px; }
         #map-container { flex: 1; position: relative; width: 100%; height: 100%; }
         #map { width: 100%; height: 100%; background: #010610; filter: grayscale(100%) brightness(70%) sepia(100%) hue-rotate(165deg) saturate(700%); }
-
-        .btn-panel { position: absolute; z-index: 4000; display: flex; flex-direction: column; gap: 12px; width: calc(100% - 30px); left: 15px; box-sizing: border-box; }
-        .top-panels { top: 20px; }
-        .bottom-panels { bottom: 30px; }
-
-        .hud-btn {
-            background: rgba(2, 12, 28, 0.9); border: 2px solid var(--cyan-hopo);
-            color: var(--cyan-hopo); padding: 14px 15px; border-radius: 30px; font-size: 13px; font-weight: bold;
-            box-shadow: 0 0 15px var(--blue-glow); text-transform: uppercase;
-        }
-
+        .btn-panel { position: absolute; z-index: 4000; display: flex; flex-direction: column; gap: 12px; width: calc(100% - 30px); left: 15px; }
+        .top-panels { top: 20px; } .bottom-panels { bottom: 30px; }
+        .hud-btn { background: rgba(2, 12, 28, 0.9); border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); padding: 14px 15px; border-radius: 30px; font-weight: bold; font-size: 13px; }
         .search-bar-container { display: flex; gap: 8px; width: 100%; }
-        .search-input {
-            flex: 1; margin: 0; padding: 12px 18px; background: rgba(2, 12, 28, 0.95);
-            border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; font-size: 14px;
-            box-shadow: 0 0 10px var(--blue-glow);
-        }
-
-        .holo-object {
-            font-size: 30px;
-            text-align: center;
-            animation: floatHolo 1s infinite alternate ease-in-out;
-        }
-        @keyframes floatHolo {
-            0% { transform: translateY(0); filter: drop-shadow(0 0 2px var(--cyan-hopo)); }
-            100% { transform: translateY(-5px); filter: drop-shadow(0 0 10px var(--cyan-hopo)); }
-        }
-
-        .delete-holo-btn {
-            background: red; color: white; border: none; font-weight: bold;
-            border-radius: 50%; width: 18px; height: 18px; font-size: 10px;
-            position: absolute; top: -10px; right: -10px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 5px rgba(255,0,0,0.8);
-        }
-
-        .tracker-label {
-            background: rgba(1, 6, 16, 0.8); border: 1px solid #ff0055;
-            color: #ff0055; padding: 2px 6px; font-size: 10px; font-weight: bold;
-            border-radius: 4px; font-family: monospace; text-shadow: 0 0 5px #ff0055;
-        }
-
-        .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); }
-        .doc-item { padding: 10px; border-bottom: 1px solid rgba(0,240,255,0.3); font-family: monospace; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-        .doc-link { color: #00ff55; text-decoration: none; font-weight: bold; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; background: rgba(0,255,85,0.1); cursor: pointer; }
-
+        .search-input { flex: 1; padding: 12px 18px; background: rgba(2, 12, 28, 0.95); border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; }
+        .holo-object { font-size: 30px; text-align: center; animation: floatHolo 1s infinite alternate ease-in-out; }
+        @keyframes floatHolo { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
+        .delete-holo-btn { background: red; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; position: absolute; top: -10px; right: -10px; }
+        .tracker-label { background: rgba(1, 6, 16, 0.8); border: 1px solid #ff0055; color: #ff0055; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; }
+        .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; }
+        .doc-item { padding: 10px; border-bottom: 1px solid rgba(0,240,255,0.3); display: flex; justify-content: space-between; align-items: center; }
+        .doc-link { color: #00ff55; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
         #camera-screen { width: 100%; height: 50vh; border: 2px solid var(--cyan-hopo); background: #000; border-radius: 12px; object-fit: cover; }
-        #editor-modal { display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); z-index: 100000; border-radius: 12px; flex-direction: column; padding: 15px; box-sizing: border-box; }
-        #editor-textarea { flex: 1; background: #000; color: #00ff00; border: 1px solid var(--cyan-hopo); font-family: monospace; padding: 10px; }
     </style>
 </head>
 <body>
-
     <div class="hologram-overlay"></div>
-
-    <div id="editor-modal">
-        <h3>🛠️ COPIER / COLLER LE CODE</h3>
-        <textarea id="editor-textarea"></textarea>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button onclick="sauvegarderLeCode()">Injecter</button>
-            <button onclick="document.getElementById('editor-modal').style.display='none'">Fermer</button>
-        </div>
-    </div>
 
     <div id="login-screen" class="screen" style="display: flex;">
         <div class="login-box">
             <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
-            <h2 style="letter-spacing: 2px; margin-bottom: 20px;">LA TEMPÊTE SYSTEM</h2>
+            <h2>LA TEMPÊTE SYSTEM</h2>
             <input type="text" id="username" placeholder="IDENTIFIANT">
-            <input type="password" id="password" placeholder="MOT DE PASSE (OPTIONNEL)">
             <button onclick="verifierConnexion()">CONNEXION</button>
         </div>
     </div>
 
     <div id="launch-screen" class="screen">
         <div class="menu-box">
-            <button onclick="ouvrirCartographie()" style="padding: 18px; font-size: 14px; margin-bottom: 10px;">⚡ CONTRÔLE CENTRAL</button>
+            <button onclick="ouvrirCartographie()">⚡ CONTRÔLE CENTRAL</button>
             <button onclick="ouvrirDonneesJuge()" style="border-color: #ffaa00; color: #ffaa00;">📊 DONNÉES SÉCURISÉES</button>
         </div>
     </div>
@@ -159,8 +56,8 @@
     <div id="membres-menu-screen" class="screen">
         <div class="menu-box">
             <h2>ACCÈS MEMBRE</h2>
-            <button onclick="ouvrirFluxVideoMembre()" style="border-color: #00ff55; color: #00ff55; margin-bottom: 10px;">🎥 SUIVRE LES HUNGER GAMES</button>
-            <button onclick="ouvrirDonneesMembres()" style="border-color: #ffaa00; color: #ffaa00;">📊 DONNÉES TACTIQUES</button>
+            <button onclick="ouvrirFluxVideoMembre()" style="border-color: #00ff55; color: #00ff55;">🎥 SUIVRE LES HUNGER GAMES</button>
+            <button onclick="ouvrirDonneesMembre()" style="border-color: #ffaa00; color: #ffaa00;">📊 DONNÉES TACTIQUES</button>
             <button onclick="window.location.reload()" style="font-size: 11px; margin-top: 15px;">DÉCONNEXION</button>
         </div>
     </div>
@@ -168,29 +65,24 @@
     <div id="donnees-screen" class="screen">
         <div class="menu-box" style="max-width: 450px; width: 90%;">
             <h2 id="donnees-titre">BASE DE DONNÉES</h2>
-            <button id="btn-ajouter-doc" onclick="document.getElementById('file-input').click()" style="display:none; border-color: #00ff55; color: #00ff55; font-size: 12px; padding: 10px; margin-bottom: 10px;">➕ AJOUTER DOCUMENT</button>
+            <button id="btn-ajouter-doc" onclick="document.getElementById('file-input').click()" style="display:none; border-color: #00ff55; color: #00ff55;">➕ AJOUTER DOCUMENT</button>
             <input type="file" id="file-input" style="display: none;" onchange="importerFichier(event)">
             <div class="doc-list" id="zone-documents"></div>
-            <button onclick="fermerFenetreDonnees()" style="margin-top: 15px; font-size: 11px; padding: 10px;">RETOUR</button>
+            <button onclick="fermerFenetreDonnees()" style="margin-top: 15px;">RETOUR</button>
         </div>
     </div>
 
     <div id="juge-interface">
-        <div id="hud-header">
-            HG : INTERFACE JUGE
-            <button class="btn-edit-code" onclick="ouvrirEditeurDeCode()">➔</button>
-        </div>
+        <div id="hud-header">HG : INTERFACE JUGE</div>
         <div id="map-container">
             <div id="map"></div>
-            
             <div class="btn-panel top-panels">
                 <div class="search-bar-container">
                     <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu...">
-                    <button class="hud-btn" onclick="rechercherLieu()" style="border-radius: 30px; padding: 10px 20px;">GO</button>
+                    <button class="hud-btn" onclick="rechercherLieu()">GO</button>
                 </div>
-                <button class="hud-btn" onclick="parler('Recherche des balises masques activée.')">👥 Connecter des participants</button>
+                <button class="hud-btn" onclick="parler('Recherche des balises activée.')">👥 Connecter des participants</button>
             </div>
-
             <div class="btn-panel bottom-panels" style="display: flex; flex-direction: row; justify-content: space-between;">
                 <button class="hud-btn" onclick="declencherCycloneIntelligent()" style="flex: 1; margin-right: 10px;">🌪️ CYCLONE</button>
                 <button class="hud-btn" id="btn-discours" onclick="basculerEnregistrement()" style="flex: 1; border-color: #ff0055; color: #ff0055;">🎙️ DISCOURS</button>
@@ -201,198 +93,107 @@
     <div id="membres-video-interface" class="screen">
         <h2>FLUX VIDÉO EN DIRECT</h2>
         <video id="camera-screen" autoplay playsinline></video>
-        <button onclick="retourMenuMembre()" style="margin-top: 20px; width: auto; padding: 10px 30px;">RETOUR</button>
+        <button onclick="retourMenuMembre()" style="margin-top: 20px;">RETOUR</button>
     </div>
+        <script>
+        let map = null; let typeUtilisateur = ""; let mediaRecorder; let audioChunks = []; let estEnregistrement = false;
+        let marqueurCibleUnique = null; let coordonneesCibleCourante = null;
 
-    <script>
-        let map = null;
-        let typeUtilisateur = "";
-        let mediaRecorder;
-        let audioChunks = [];
-        let estEnregistrement = false;
-        
-        let marqueurCibleUnique = null;
-        let coordonneesCibleCourante = null;
-
-        function genererBruitageTactique(type) {
-            let ctx = new (window.AudioContext || window.webkitAudioContext)();
-            let osc = ctx.createOscillator();
-            let gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            if(type === 'miaulement') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-                osc.start(); osc.stop(ctx.currentTime + 0.4);
-            } else if(type === 'chute') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(40, ctx.currentTime + 0.8);
-                gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
-                osc.start(); osc.stop(ctx.currentTime + 0.9);
-            }
+        function parler(t) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); let m = new SpeechSynthesisUtterance(t); m.lang = 'fr-FR'; m.pitch = 0.6; window.speechSynthesis.speak(m); } }
+        function changerEcran(id) { 
+            const ecrans = ['login-screen', 'launch-screen', 'membres-menu-screen', 'donnees-screen', 'membres-video-interface', 'juge-interface'];
+            ecrans.forEach(e => document.getElementById(e).style.display = 'none');
+            document.getElementById(id).style.display = 'flex';
         }
 
-        function parler(texte) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                let message = new SpeechSynthesisUtterance(texte);
-                message.lang = 'fr-FR';
-                message.pitch = 0.6; 
-                message.rate = 0.95;
-                window.speechSynthesis.speak(message);
-            }
-        }
-
-        function changerEcran(idEcranAFFICHER) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('launch-screen').style.display = 'none';
-            document.getElementById('membres-menu-screen').style.display = 'none';
-            document.getElementById('donnees-screen').style.display = 'none';
-            document.getElementById('membres-video-interface').style.display = 'none';
-            document.getElementById('juge-interface').style.display = 'none';
-            document.getElementById(idEcranAFFICHER).style.display = 'flex';
-        }
-
-        // VERIFICATION ASSOUPLIE POUR EVITER LES BLOCAGES
         function verifierConnexion() {
-            let user = document.getElementById('username').value.trim();
-            let mdp = document.getElementById('password').value.trim();
-            
-            if (!user) {
-                alert("VEUILLEZ SATELLITER UN IDENTIFIANT");
-                return;
-            }
-
-            parler("Connexion au terminal de La Tempête.");
-
+            let u = document.getElementById('username').value.trim();
+            if (!u) { alert("IDENTIFIANT REQUIS"); return; }
+            parler("Connexion en cours.");
             setTimeout(() => {
-                // Si l'identifiant contient "membre", on va sur le portail membre, sinon par défaut on va sur le portail Juge
-                if (user.toLowerCase().includes("membre") || mdp === "membre24") {
-                    typeUtilisateur = "membre";
-                    changerEcran('membres-menu-screen');
-                } else {
-                    typeUtilisateur = "juge";
-                    changerEcran('launch-screen');
-                }
-            }, 1000); 
+                if (u.toLowerCase().includes("membre")) { typeUtilisateur = "membre"; changerEcran('membres-menu-screen'); }
+                else { typeUtilisateur = "juge"; changerEcran('launch-screen'); }
+            }, 500);
         }
 
         function ouvrirCartographie() {
             changerEcran('juge-interface');
-            
             if (!map) {
                 setTimeout(() => {
                     map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.4262, 4.7565], 17);
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
-
-                    map.on('click', function(e) {
-                        if (marqueurCibleUnique) { map.removeLayer(marqueurCibleUnique); }
+                    map.on('click', e => {
+                        if (marqueurCibleUnique) map.removeLayer(marqueurCibleUnique);
                         coordonneesCibleCourante = e.latlng;
-                        marqueurCibleUnique = L.marker(e.latlng).addTo(map).bindPopup("<b style='color:#00f0ff;'>Zone ciblée</b>").openPopup();
-                        parler("Zone ciblée.");
+                        marqueurCibleUnique = L.marker(e.latlng).addTo(map).bindPopup("Zone ciblée").openPopup();
                     });
-
-                    simulerMasquesGps([45.4264, 4.7560], "Masque Alpha [01]");
-                    simulerMasquesGps([45.4260, 4.7570], "Masque Bravo [02]");
                 }, 300);
             }
         }
 
-        function simulerMasquesGps(coordsInitiales, nomTraceur) {
-            let markerLabel = L.divIcon({
-                html: `<div class="tracker-label">📍 ${nomTraceur}</div>`,
-                className: 'custom-tracker',
-                iconSize: [100, 20]
-            });
-            let masqueMarker = L.marker(coordsInitiales, { icon: markerLabel }).addTo(map);
-
-            setInterval(() => {
-                if(map) {
-                    let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
-                    let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
-                    masqueMarker.setLatLng([currentLat, currentLng]);
-                }
-            }, 3000);
-        }
-
         function declencherCycloneIntelligent() {
-            if(!coordonneesCibleCourante) {
-                parler("Erreur. Aucune zone ciblée sur l'écran pour initier le Cyclone.");
-                return;
-            }
-
-            parler("Système Cyclone en attente. Que dois-je générer ?");
-            
-            setTimeout(() => {
-                let reponseJuge = prompt("Cyclone System - Entrer votre directive :");
-                
-                if (reponseJuge && reponseJuge.includes("génère l'animation de")) {
-                    let elementAGenerer = reponseJuge.replace("génère l'animation de", "").replace("ici", "").trim();
-                    
-                    parler("Lancement en arrière-plan du moteur graphique 3D. Récupération de l'élément " + elementAGenerer);
-
-                    setTimeout(() => {
-                        let emoji = "📦"; 
-                        if(elementAGenerer.includes("chat")) { emoji = "🐈"; genererBruitageTactique('miaulement'); }
-                        if(elementAGenerer.includes("arbre")) { emoji = "🌳"; genererBruitageTactique('chute'); }
-
-                        if (marqueurCibleUnique) { map.removeLayer(marqueurCibleUnique); marqueurCibleUnique = null; }
-
-                        let idUniqueHolo = 'holo_' + Date.now();
-                        let holoIcon = L.divIcon({
-                            html: `<div id="${idUniqueHolo}" class="holo-object">${emoji}<button class="delete-holo-btn" onclick="supprimerHologramme('${idUniqueHolo}')">X</button></div>`,
-                            className: 'custom-holo',
-                            iconSize: [50, 50],
-                            iconAnchor: [25, 25]
-                        });
-
-                        let marqueurHolo = L.marker(coordonneesCibleCourante, { icon: holoIcon }).addTo(map);
-                        window[idUniqueHolo] = marqueurHolo;
-
-                        parler("Animation synchronisée au repère G P S précis.");
-                    }, 2000);
-                } else {
-                    parler("Directive Cyclone annulée.");
-                }
-            }, 600);
-        }
-
-        function supprimerHologramme(id) {
-            if(window[id]) {
-                map.removeLayer(window[id]);
-                parler("Suppression de l'animation.");
+            if(!coordonneesCibleCourante) { parler("Aucune zone ciblée."); return; }
+            let r = prompt("Directive Cyclone :");
+            if (r && r.includes("génère l'animation de")) {
+                let el = r.replace("génère l'animation de", "").replace("ici", "").trim();
+                parler("Génération de " + el);
+                let id = 'holo_' + Date.now();
+                let icon = L.divIcon({ html: `<div id="${id}" class="holo-object">🐈</div>`, iconSize: [50, 50] });
+                window[id] = L.marker(coordonneesCibleCourante, { icon: icon }).addTo(map);
             }
         }
 
         function rechercherLieu() {
-            let query = document.getElementById('search-input').value;
-            if (!query) return;
-            
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-            .then(res => res.json())
-            .then(data => {
-                if(data.length > 0 && map) {
-                    let lat = parseFloat(data[0].lat);
-                    let lon = parseFloat(data[0].lon);
-                    map.setView([lat, lon], 17);
-                    parler("Recalage des satellites de surveillance sur " + query);
-                } else {
-                    parler("Lieu introuvable.");
-                }
-            }).catch(() => { parler("Erreur de liaison satellite."); });
+            let q = document.getElementById('search-input').value;
+            if (!q) return;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+            .then(res => res.json()).then(data => {
+                if(data.length > 0 && map) { map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 17); }
+            });
         }
 
         function basculerEnregistrement() {
             let btn = document.getElementById('btn-discours');
             if (!estEnregistrement) {
-                navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    mediaRecorder = new MediaRecorder(stream); audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecord
+                    mediaRecorder.onstop = () => {
+                        let audio = new Audio(URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })));
+                        setTimeout(() => { audio.play(); }, 500);
+                    };
+                    mediaRecorder.start(); estEnregistrement = true; btn.innerText = "🛑 STOP";
+                });
+            } else { mediaRecorder.stop(); estEnregistrement = false; btn.innerText = "🎙️ DISCOURS"; }
+        }
+
+        function chargerDocumentsGraphiques() {
+            let zone = document.getElementById('zone-documents');
+            let docs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
+            if(docs.length === 0) { zone.innerHTML = '<div style="color:gray;">Aucun document.</div>'; return; }
+            zone.innerHTML = "";
+            docs.forEach((d, i) => { zone.innerHTML += `<div class="doc-item"><span>📄 ${d.nom}</span><div class="doc-link" onclick="window.open('${d.data}')">OUVRIR</div></div>`; });
+        }
+
+        function ouvrirDonneesJuge() { changerEcran('donnees-screen'); document.getElementById('btn-ajouter-doc').style.display = "block"; chargerDocumentsGraphiques(); }
+        function ouvrirDonneesMembre() { changerEcran('donnees-screen'); document.getElementById('btn-ajouter-doc').style.display = "none"; chargerDocumentsGraphiques(); }
+        function fermerFenetreDonnees() { if(typeUtilisateur === "juge") changerEcran('launch-screen'); else changerEcran('membres-menu-screen'); }
+
+        function importerFichier(event) {
+            let file = event.target.files[0]; if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let docs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
+                docs.push({ nom: file.name, data: e.target.result });
+                localStorage.setItem('hunger_docs', JSON.stringify(docs)); chargerDocumentsGraphiques();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function ouvrirFluxVideoMembre() { changerEcran('membres-video-interface'); navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => { document.getElementById('camera-screen').srcObject = s; }); }
+        function retourMenuMembre() { let v = document.getElementById('camera-screen'); if(v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); } changerEcran('membres-menu-screen'); }
+    </script>
+</body>
+</html>
+
+    
