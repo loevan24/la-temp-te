@@ -93,7 +93,6 @@
             box-shadow: 0 0 10px var(--blue-glow);
         }
 
-        /* Styles des éléments 3D simulés */
         .holo-object {
             font-size: 30px;
             text-align: center;
@@ -112,7 +111,6 @@
             box-shadow: 0 0 5px rgba(255,0,0,0.8);
         }
 
-        /* Label des traceurs */
         .tracker-label {
             background: rgba(1, 6, 16, 0.8); border: 1px solid #ff0055;
             color: #ff0055; padding: 2px 6px; font-size: 10px; font-weight: bold;
@@ -121,7 +119,7 @@
 
         .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); }
         .doc-item { padding: 10px; border-bottom: 1px solid rgba(0,240,255,0.3); font-family: monospace; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-        .doc-link { color: #00ff55; text-decoration: none; font-weight: bold; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; background: rgba(0,255,85,0.1); }
+        .doc-link { color: #00ff55; text-decoration: none; font-weight: bold; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; background: rgba(0,255,85,0.1); cursor: pointer; }
 
         #camera-screen { width: 100%; height: 50vh; border: 2px solid var(--cyan-hopo); background: #000; border-radius: 12px; object-fit: cover; }
         #editor-modal { display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); z-index: 100000; border-radius: 12px; flex-direction: column; padding: 15px; box-sizing: border-box; }
@@ -213,10 +211,9 @@
         let audioChunks = [];
         let estEnregistrement = false;
         
-        let marqueurCibleUnique = null; // Stocke la cible courante pour effacer l'ancienne
+        let marqueurCibleUnique = null;
         let coordonneesCibleCourante = null;
 
-        // Générateur de bruits audio via le processeur audio du Redmi
         function genererBruitageTactique(type) {
             let ctx = new (window.AudioContext || window.webkitAudioContext)();
             let osc = ctx.createOscillator();
@@ -232,7 +229,6 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
                 osc.start(); osc.stop(ctx.currentTime + 0.4);
             } else if(type === 'chute') {
-                // Bruit sourd de craquement
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(120, ctx.currentTime);
                 osc.frequency.linearRampToValueAtTime(40, ctx.currentTime + 0.8);
@@ -278,7 +274,7 @@
                     typeUtilisateur = "membre";
                     changerEcran('membres-menu-screen');
                 } else {
-                    alert("ACCÈS SECURISE : CLE DE CRYPTAGE INCORRECTE");
+                    alert("ACCÈS SÉCURISÉ : CLÉ INCORRECTE");
                 }
             }, 1500); 
         }
@@ -288,22 +284,16 @@
             
             if (!map) {
                 setTimeout(() => {
-                    // Centrage automatique par défaut au Skatepark de Saint-Alban-du-Rhône (45.4262, 4.7565)
                     map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.4262, 4.7565], 17);
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
 
-                    // CLIC UNIQUE CORRIGE
                     map.on('click', function(e) {
-                        if (marqueurCibleUnique) {
-                            map.removeLayer(marqueurCibleUnique); // Supprime l'ancienne cible
-                        }
-                        
+                        if (marqueurCibleUnique) { map.removeLayer(marqueurCibleUnique); }
                         coordonneesCibleCourante = e.latlng;
                         marqueurCibleUnique = L.marker(e.latlng).addTo(map).bindPopup("<b style='color:#00f0ff;'>Zone ciblée</b>").openPopup();
                         parler("Zone ciblée.");
                     });
 
-                    // Simulation Système de Traceurs GPS pour Masques Autonomes
                     simulerMasquesGps([45.4264, 4.7560], "Masque Alpha [01]");
                     simulerMasquesGps([45.4260, 4.7570], "Masque Bravo [02]");
                 }, 300);
@@ -318,7 +308,6 @@
             });
             let masqueMarker = L.marker(coordsInitiales, { icon: markerLabel }).addTo(map);
 
-            // Simule de légers déplacements réguliers en temps réel
             setInterval(() => {
                 let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
                 let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
@@ -335,21 +324,18 @@
             parler("Système Cyclone en attente. Que dois-je générer ?");
             
             setTimeout(() => {
-                let reponseJuge = prompt("Cyclone System - Entrer votre directive (Ex: génère l'animation de un chat roux ici) :");
+                let reponseJuge = prompt("Cyclone System - Entrer votre directive :");
                 
                 if (reponseJuge && reponseJuge.includes("génère l'animation de")) {
-                    // Extraction du contenu situé dans (...)
                     let elementAGenerer = reponseJuge.replace("génère l'animation de", "").replace("ici", "").trim();
                     
                     parler("Lancement en arrière-plan du moteur graphique 3D. Récupération de l'élément " + elementAGenerer);
 
                     setTimeout(() => {
-                        // Choix de l'emoji selon le texte du Juge
                         let emoji = "📦"; 
                         if(elementAGenerer.includes("chat")) { emoji = "🐈"; genererBruitageTactique('miaulement'); }
                         if(elementAGenerer.includes("arbre")) { emoji = "🌳"; genererBruitageTactique('chute'); }
 
-                        // On efface la cible pour y injecter l'animation 3D à la place
                         if (marqueurCibleUnique) { map.removeLayer(marqueurCibleUnique); marqueurCibleUnique = null; }
 
                         let idUniqueHolo = 'holo_' + Date.now();
@@ -361,14 +347,14 @@
                         });
 
                         let marqueurHolo = L.marker(coordonneesCibleCourante, { icon: holoIcon }).addTo(map);
-                        window[idUniqueHolo] = marqueurHolo; // Permet la suppression dynamique globale
+                        window[idUniqueHolo] = marqueurHolo;
 
                         parler("Animation synchronisée au repère G P S précis.");
                     }, 2000);
                 } else {
-                    parler("Directive Cyclone annulée ou format incorrect.");
+                    parler("Directive Cyclone annulée.");
                 }
-            }, 500);
+            }, 600);
         }
 
         function supprimerHologramme(id) {
@@ -389,4 +375,22 @@
                     let lat = parseFloat(data[0].lat);
                     let lon = parseFloat(data[0].lon);
                     map.setView([lat, lon], 17);
-                    parler("Recalage des satellites de surveillance sur "
+                    parler("Recalage des satellites de surveillance sur " + query);
+                } else {
+                    parler("Lieu introuvable.");
+                }
+            }).catch(() => { parler("Erreur de liaison satellite."); });
+        }
+
+        function basculerEnregistrement() {
+            let btn = document.getElementById('btn-discours');
+            if (!estEnregistrement) {
+                navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        let audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                        let audioUrl = URL.createObjectURL(audioBlob);
+                        let audio = new Audio(audioUrl);
+                        parler("Transmission du flux modulé.")
