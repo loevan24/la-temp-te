@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
+    <title>La Tempête - Data</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --cyan-hopo: #00f0ff;
+            --blue-glow: rgba(0, 240, 255, 0.4);
+            --bg-trans-dark: rgba(2, 12, 28, 0.85);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #010610;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: var(--cyan-hopo);
+            overflow: hidden;
+        }
+
+        .hologram-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0, 240, 255, 0.05) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 3px;
+            z-index: 9999; pointer-events: none;
+            box-shadow: inset 0 0 40px rgba(0, 240, 255, 0.2);
+        }
+
+        /* STYLE DES ÉCRANS / MENUS */
+        .screen {
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;
+            background: radial-gradient(circle, rgba(0,80,150,0.2) 0%, rgba(1,6,16,1) 100%);
+        }
+
+        .login-box, .menu-box {
+            background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo);
+            box-shadow: 0 0 30px var(--blue-glow); padding: 30px; border-radius: 16px;
+            text-align: center; width: 100%; max-width: 380px; backdrop-filter: blur(8px);
+        }
+
+        input {
+            width: 100%; padding: 12px; margin: 12px 0; box-sizing: border-box;
+            background: rgba(0, 40, 80, 0.3); border: 1px solid var(--cyan-hopo);
+            color: var(--cyan-hopo); border-radius: 8px; font-size: 16px; text-align: center;
+        }
+
+        button {
+            width: 100%; padding: 14px; margin: 8px 0; background: rgba(0, 240, 255, 0.1);
+            border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo);
+            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+        }
+
+        /* INTERFACE CARTOGRAPHIE JUGE */
+        #juge-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; }
+        #hud-header {
+            background: var(--bg-trans-dark); padding: 14px; text-align: center;
+            border-bottom: 2px solid var(--cyan-hopo); font-weight: 900; letter-spacing: 3px;
+            position: relative;
+        }
+        .btn-edit-code {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: 1px solid var(--cyan-hopo); color: var(--cyan-hopo);
+            padding: 6px 14px; cursor: pointer; font-weight: bold;
+        }
+
+        #map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; background: #010610; filter: grayscale(100%) brightness(70%) sepia(100%) hue-rotate(165deg) saturate(700%); }
+
+        .btn-panel { position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
+        .top-left { top: 70px; left: 15px; } .top-right { top: 70px; right: 15px; } 
+        .bottom-left { bottom: 25px; left: 15px; } .bottom-right { bottom: 25px; right: 15px; }
+
+        .hud-btn {
+            background: rgba(2, 12, 28, 0.85); border: 2px solid var(--cyan-hopo);
+            color: var(--cyan-hopo); padding: 12px 18px; border-radius: 30px; font-size: 11px; font-weight: bold;
+        }
+
+        /* ESPACE DONNÉES / DOCUMENTS */
+        .doc-list {
+            text-align: left; margin-top: 15px; max-height: 200px; overflow-y: auto;
+            border: 1px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px;
+        }
+        .doc-item {
+            padding: 6px; border-bottom: 1px solid rgba(0,240,255,0.2); font-family: monospace; font-size: 13px;
+        }
+
+        #camera-screen { width: 85%; height: 55vh; border: 2px solid var(--cyan-hopo); background: #000; border-radius: 12px; object-fit: cover; }
+        #editor-modal { display: none; position: fixed; top: 10%; left: 5%; width: 90%; height: 80%; background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); z-index: 100000; border-radius: 12px; flex-direction: column; padding: 15px; box-sizing: border-box; }
+        #editor-textarea { flex: 1; background: #000; color: #00ff00; border: 1px solid var(--cyan-hopo); font-family: monospace; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="hologram-overlay"></div>
+
+    <div id="editor-modal">
+        <h3>🛠️ MODIFICATION EN DIRECT DU PROGRAMME</h3>
+        <textarea id="editor-textarea"></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button onclick="sauvegarderLeCode()">Injecter la mise à jour</button>
+            <button onclick="document.getElementById('editor-modal').style.display='none'">Annuler</button>
+        </div>
+    </div>
+
+    <div id="login-screen" class="screen" style="display: flex;">
+        <div class="login-box">
+            <img src="https://img.icons8.com/fluent/96/flash-on.png" alt="Logo">
+            <h2 style="letter-spacing: 2px;">LA TEMPÊTE SYSTEM</h2>
+            <input type="text" id="username" placeholder="IDENTIFIANT">
+            <input type="password" id="password" placeholder="MOT DE PASSE">
+            <button onclick="verifierConnexion()">Valider la clé</button>
+        </div>
+    </div>
+
+    <div id="launch-screen" class="screen">
+        <div class="menu-box" style="background: transparent; border: none; box-shadow: none;">
+            <button onclick="ouvrirCartographie()" style="padding: 20px; font-size: 15px; border-radius: 50px; margin-bottom: 15px;">
+                ⚡ CONTRÔLE DES HUNGER GAMES ⚡
+            </button>
+            <button onclick="ouvrirDonneesJuge()" style="padding: 15px; font-size: 14px; border-radius: 50px; border-color: #ffaa00; color: #ffaa00;">
+                📊 DONNÉES SÉCURISÉES
+            </button>
+        </div>
+    </div>
+
+    <div id="membres-menu-screen" class="screen">
+        <div class="menu-box">
+            <h2>ACCÈS SATELLITE MEMBRE</h2>
+            <p style="font-size: 12px; rgba(0,240,255,0.7)">Sélectionnez le module à synchroniser :</p>
+            <button onclick="ouvrirFluxVideoMembre()" style="border-color: #00ff55; color: #00ff55;">🎥 Suivre les Hunger Games</button>
+            <button onclick="ouvrirDonneesMembre()" style="border-color: #ffaa00; color: #ffaa00;">📊 Données Tactiques</button>
+            <button onclick="window.location.reload()" style="margin-top: 15px; font-size: 11px; padding: 8px;">Déconnexion</button>
+        </div>
+    </div>
+
+    <div id="donnees-screen" class="screen">
+        <div class="menu-box" style="max-width: 450px;">
+            <h2 id="donnees-titre">BASE DE DONNÉES</h2>
+            
+            <button id="btn-ajouter-doc" onclick="declencherAjoutDocument()" style="display:none; font-size: 13px; background: rgba(0,255,0,0.1); border-color: #00ff55; color: #00ff55;">➕ Ajouter un document</button>
+            <input type="file" id="file-input" style="display: none;" onchange="importerFichier(event)">
+
+            <div class="doc-list" id="zone-documents">
+                <div class="doc-item" style="color: gray; text-align: center;">Aucun document partagé.</div>
+            </div>
+            
+            <button onclick="fermerFenetreDonnees()" style="margin-top: 15px; font-size: 12px; padding: 10px;">Retour au menu</button>
+        </div>
+    </div>
+
+    <div id="juge-interface">
+        <div id="hud-header">
+            HUNGER GAMES : INTERFACE JUGE
+            <button class="btn-edit-code" onclick="ouvrirEditeurDeCode()">➔</button>
+        </div>
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="btn-panel top-left">
+                <button class="hud-btn" onclick="ouvrirListeParticipants()">👥 Connecter des participants</button>
+            </div>
+            <div class="btn-panel bottom-left">
+                <button class="hud-btn" onclick="declencherCyclone()">🌪️ CYCLONE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="membres-video-interface" class="screen">
+        <h2 style="letter-spacing: 2px; margin-bottom: 15px;">FLUX TEMPS RÉEL</h2>
+        <video id="camera-screen" autoplay playsinline></video>
+        <button onclick="retourMenuMembre()" style="margin-top: 25px; width: auto; padding: 12px 30px;">Retour au menu</button>
+    </div>
+
+    <script>
+        let map;
+        let coordCible = { lat: 45.4244, lon: 4.7552 };
+        let typeUtilisateur = ""; // Garde en mémoire si "juge" ou "membre"
+
+        function parler(texte) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let message = new SpeechSynthesisUtterance(texte);
+                message.lang = 'fr-FR';
+                window.speechSynthesis.speak(message);
+            }
+        }
+
+        function verifierConnexion() {
+            let user = document.getElementById('username').value;
+            let mdp = document.getElementById('password').value;
+            if (!user) return;
+
+            parler(`Bienvenue ${user}`);
+
+            setTimeout(() => {
+                if (mdp === "Poudlard-12241223") {
+                    typeUtilisateur = "juge";
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('launch-screen').style.display = 'flex';
+                } else if (mdp === "membre24") {
+                    typeUtilisateur = "membre";
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('membres-menu-screen').style.display = 'flex';
+                } else {
+                    alert("ACCÈS REFUSÉ");
+                }
+            }, 8000);
+        }
+
+        /* GESTION ET AFFICHAGE DE LA BASE DE DONNÉES */
+        function chargerDocumentsGraphiques() {
+            let zone = document.getElementById('zone-documents');
+            let listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
+            
+            if(listeDocs.length === 0) {
+                zone.innerHTML = `<div class="doc-item" style="color: gray; text-align: center;">Aucun document partagé.</div>`;
+                return;
+            }
+
+            zone.innerHTML = "";
+            listeDocs.forEach(doc => {
+                zone.innerHTML += `<div class="doc-item">📄 <b>${doc.nom}</b> (${doc.taille})</div>`;
+            });
+        }
+
+        function ouvrirDonneesJuge() {
+            document.getElementById('launch-screen').style.display = 'none';
+            document.getElementById('donnees-screen').style.display = 'flex';
+            document.getElementById('donnees-titre').innerText = "DONNÉES JUGE // ACCÈS TOTAL";
+            document.getElementById('btn-ajouter-doc').style.display = "block"; // Seul le Juge peut ajouter
+            chargerDocumentsGraphiques();
+        }
+
+        function ouvrirDonneesMembre() {
+            document.getElementById('membres-menu-screen').style.display = 'none';
+            document.getElementById('donnees-screen').style.display = 'flex';
+            document.getElementById('donnees-titre').innerText = "DONNÉES MEMBRES // LECTURE EXPÉDITION";
+            document.getElementById('btn-ajouter-doc').style.display = "none"; // Masqué pour les membres
+            chargerDocumentsGraphiques();
+        }
+
+        function declencherAjoutDocument() {
+            document.getElementById('file-input').click(); // Ouvre l'explorateur du Redmi
+        }
+
+        function importerFichier(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
+            
+            // On sauvegarde le nom et la taille du document
+            listeDocs.push({
+                nom: file.name,
+                taille: (file.size / 1024).toFixed(1) + " KB"
+            });
+
+            localStorage.setItem('hunger_docs', JSON.stringify(listeDocs));
+            parler("Document ajouté à la base de données partagée.");
+            chargerDocumentsGraphiques();
+        }
+
+        function fermerFenetreDonnees() {
+            document.getElementById('donnees-screen').style.display = 'none';
+            if(typeUtilisateur === "juge") {
+                document.getElementById('launch-screen').style.display = 'flex';
+            } else {
+                document.getElementById('membres-menu-screen').style.display = 'flex';
+            }
+        }
+
+        /* NAVIGATION MEMBRES VIDEO */
+        function ouvrirFluxVideoMembre() {
+            document.getElementById('membres-menu-screen').style.display = 'none';
+            document.getElementById('membres-video-interface').style.display = 'flex';
+            let video = document.getElementById('camera-screen');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(stream => { video.srcObject = stream; })
+            .catch(() => { alert("Caméra indisponible en mode local standard."); });
+        }
+
+        function retourMenuMembre() {
+            document.getElementById('membres-video-interface').style.display = 'none';
+            document.getElementById('membres-menu-screen').style.display = 'flex';
+        }
+
+        function ouvrirCartographie() {
+            document.getElementById('launch-screen').style.display = 'none';
+            document.getElementById('juge-interface').style.display = 'flex';
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([coordCible.lat, coordCible.lon], 18);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+        }
+
+        function ouvrirEditeurDeCode() {
+            document.getElementById('editor-textarea').value = document.documentElement.outerHTML;
+            document.getElementById('editor-modal').style.display = 'flex';
+        }
+
+        function sauvegarderLeCode() {
+            let codeMiseAJour = document.getElementById('editor-textarea').value;
+            document.open(); document.write(codeMiseAJour); document.close();
+            alert("Modifications appliquées.");
+        }
+    </script>
+</body>
+</html>
