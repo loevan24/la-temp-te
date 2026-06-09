@@ -92,10 +92,12 @@
             border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; font-size: 14px;
             box-shadow: 0 0 10px var(--blue-glow);
         }
+
         .holo-object {
             font-size: 30px;
             text-align: center;
             animation: floatHolo 1s infinite alternate ease-in-out;
+            position: relative;
         }
         @keyframes floatHolo {
             0% { transform: translateY(0); filter: drop-shadow(0 0 2px var(--cyan-hopo)); }
@@ -108,6 +110,7 @@
             position: absolute; top: -10px; right: -10px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 5px rgba(255,0,0,0.8);
+            z-index: 9999;
         }
 
         .tracker-label {
@@ -118,7 +121,9 @@
 
         .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); }
         .doc-item { padding: 10px; border-bottom: 1px solid rgba(0,240,255,0.3); font-family: monospace; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+        .doc-controls { display: flex; gap: 6px; }
         .doc-link { color: #00ff55; text-decoration: none; font-weight: bold; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; background: rgba(0,255,85,0.1); cursor: pointer; }
+        .doc-btn-delete { color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 4px 8px; border-radius: 4px; background: rgba(255,0,85,0.1); cursor: pointer; }
 
         #camera-screen { width: 100%; height: 50vh; border: 2px solid var(--cyan-hopo); background: #000; border-radius: 12px; object-fit: cover; }
         #editor-modal { display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); z-index: 100000; border-radius: 12px; flex-direction: column; padding: 15px; box-sizing: border-box; }
@@ -143,7 +148,7 @@
             <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
             <h2 style="letter-spacing: 2px; margin-bottom: 20px;">LA TEMPÊTE SYSTEM</h2>
             <input type="text" id="username" placeholder="IDENTIFIANT">
-            <input type="password" id="password" placeholder="MOT DE PASSE">
+            <input type="password" id="password" placeholder="MOT DE PASSE (FACULTATIF)">
             <button onclick="verifierConnexion()">CONNEXION</button>
         </div>
     </div>
@@ -187,11 +192,12 @@
                     <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu...">
                     <button class="hud-btn" onclick="rechercherLieu()" style="border-radius: 30px; padding: 10px 20px;">GO</button>
                 </div>
-                <button class="hud-btn" onclick="parler('Recherche des balises masques activée.')">👥 Connecter des participants</button>
+                <button class="hud-btn" onclick="declencherMasquesGpsManuel()">👥 Connecter des participants</button>
+                <button class="hud-btn" id="btn-toggle-cam-juge" onclick="basculerCameraJuge()" style="border-color: #00ff55; color: #00ff55;">🎥 CONNECTER CAMÉRAS</button>
             </div>
 
             <div class="btn-panel bottom-panels" style="display: flex; flex-direction: row; justify-content: space-between;">
-                <button class="hud-btn" onclick="declencherCycloneIntelligent()" style="flex: 1; margin-right: 10px;">🌪️ CYCLONE</button>
+                <button class="hud-btn" onclick="declencherCycloneVocal()" style="flex: 1; margin-right: 10px; border-color: #ffaa00; color: #ffaa00;">🌪️ CYCLONE (MICRO)</button>
                 <button class="hud-btn" id="btn-discours" onclick="basculerEnregistrement()" style="flex: 1; border-color: #ff0055; color: #ff0055;">🎙️ DISCOURS</button>
             </div>
         </div>
@@ -199,7 +205,7 @@
 
     <div id="membres-video-interface" class="screen">
         <h2>FLUX VIDÉO EN DIRECT</h2>
-        <video id="camera-screen" autoplay playsinline></video>
+        <video id="camera-screen" autoplay playsinline muted></video>
         <button onclick="retourMenuMembre()" style="margin-top: 20px; width: auto; padding: 10px 30px;">RETOUR</button>
     </div>
 
@@ -212,6 +218,7 @@
         
         let marqueurCibleUnique = null;
         let coordonneesCibleCourante = null;
+        let fluxVideoPartage = null;
 
         function genererBruitageTactique(type) {
             let ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -242,11 +249,22 @@
                 window.speechSynthesis.cancel();
                 let message = new SpeechSynthesisUtterance(texte);
                 message.lang = 'fr-FR';
-                message.pitch = 0.6; 
-                message.rate = 0.95;
+                message.pitch = 0.45; 
+                message.rate = 0.85; 
+
+                let toutesLesVoix = window.speechSynthesis.getVoices();
+                let voixHommeDouce = toutesLesVoix.find(v => 
+                    v.lang.startsWith('fr') && 
+                    (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('homme') || v.name.toLowerCase().includes('google'))
+                );
+                if (voixHommeDouce) {
+                    message.voice = voixHommeDouce;
+                }
                 window.speechSynthesis.speak(message);
             }
         }
+        if ('speechSynthesis' in window) { window.speechSynthesis.onvoiceschanged = () => {}; }
+
         function changerEcran(idEcranAFFICHER) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('launch-screen').style.display = 'none';
@@ -254,27 +272,29 @@
             document.getElementById('donnees-screen').style.display = 'none';
             document.getElementById('membres-video-interface').style.display = 'none';
             document.getElementById('juge-interface').style.display = 'none';
+            
             document.getElementById(idEcranAFFICHER).style.display = 'flex';
         }
 
         function verifierConnexion() {
-            let user = document.getElementById('username').value;
-            let mdp = document.getElementById('password').value;
-            if (!user) return;
+            let user = document.getElementById('username').value.trim();
+            
+            if (!user) {
+                alert("VEUILLEZ CONFIGURER UN IDENTIFIANT");
+                return;
+            }
 
             parler("Connexion au terminal de La Tempête.");
 
             setTimeout(() => {
-                if (mdp === "Poudlard-12241223") {
-                    typeUtilisateur = "juge";
-                    changerEcran('launch-screen');
-                } else if (mdp === "membre24") {
+                if (user.toLowerCase().includes("membre")) {
                     typeUtilisateur = "membre";
                     changerEcran('membres-menu-screen');
                 } else {
-                    alert("ACCÈS SÉCURISÉ : CLÉ INCORRECTE");
+                    typeUtilisateur = "juge";
+                    changerEcran('launch-screen');
                 }
-            }, 1500); 
+            }, 500); 
         }
 
         function ouvrirCartographie() {
@@ -291,11 +311,15 @@
                         marqueurCibleUnique = L.marker(e.latlng).addTo(map).bindPopup("<b style='color:#00f0ff;'>Zone ciblée</b>").openPopup();
                         parler("Zone ciblée.");
                     });
-
-                    simulerMasquesGps([45.4264, 4.7560], "Masque Alpha [01]");
-                    simulerMasquesGps([45.4260, 4.7570], "Masque Bravo [02]");
                 }, 300);
             }
+        }
+
+        function declencherMasquesGpsManuel() {
+            if(!map) return;
+            parler("Recherche et connexion des balises masques activée.");
+            simulerMasquesGps([45.4264, 4.7560], "Masque Alpha [01]");
+            simulerMasquesGps([45.4260, 4.7570], "Masque Bravo [02]");
         }
 
         function simulerMasquesGps(coordsInitiales, nomTraceur) {
@@ -307,27 +331,66 @@
             let masqueMarker = L.marker(coordsInitiales, { icon: markerLabel }).addTo(map);
 
             setInterval(() => {
-                let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
-                let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
-                masqueMarker.setLatLng([currentLat, currentLng]);
+                if(map) {
+                    let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
+                    let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
+                    masqueMarker.setLatLng([currentLat, currentLng]);
+                }
             }, 3000);
         }
 
-        function declencherCycloneIntelligent() {
+        function basculerCameraJuge() {
+            let btn = document.getElementById('btn-toggle-cam-juge');
+            if(!fluxVideoPartage) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+                .then(stream => {
+                    fluxVideoPartage = stream;
+                    parler("Caméras externes synchronisées. Flux de transmission actif pour les membres.");
+                    btn.innerText = "🛑 COUPER LES CAMÉRAS";
+                    btn.style.borderColor = "red";
+                    btn.style.color = "red";
+                })
+                .catch(() => {
+                    alert("Impossible d'accéder au matériel caméra.");
+                });
+            } else {
+                fluxVideoPartage.getTracks().forEach(track => track.stop());
+                fluxVideoPartage = null;
+                parler("Fermeture des caméras. Flux déconnecté.");
+                btn.innerText = "🎥 CONNECTER CAMÉRAS";
+                btn.style.borderColor = "#00ff55";
+                btn.style.color = "#00ff55";
+            }
+        }
+
+        function declencherCycloneVocal() {
             if(!coordonneesCibleCourante) {
                 parler("Erreur. Aucune zone ciblée sur l'écran pour initier le Cyclone.");
                 return;
             }
 
-            parler("Système Cyclone en attente. Que dois-je générer ?");
-            
-            setTimeout(() => {
-                let reponseJuge = prompt("Cyclone System - Entrer votre directive :");
+            let ReconnaissanceVocale = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!ReconnaissanceVocale) {
+                parler("La reconnaissance vocale n'est pas supportée sur ce navigateur.");
+                return;
+            }
+
+            let micro = new ReconnaissanceVocale();
+            micro.lang = 'fr-FR';
+            micro.interimResults = false;
+            micro.maxAlternatives = 1;
+
+            parler("Système Cyclone à l'écoute. Énoncer votre directive.");
+
+            micro.start();
+
+            micro.onresult = function(event) {
+                let reponseJuge = event.results[0][0].transcript.toLowerCase();
                 
-                if (reponseJuge && reponseJuge.includes("génère l'animation de")) {
-                    let elementAGenerer = reponseJuge.replace("génère l'animation de", "").replace("ici", "").trim();
+                if (reponseJuge.includes("génère l'animation de") || reponseJuge.includes("génère")) {
+                    let elementAGenerer = reponseJuge.replace("génère l'animation de", "").replace("génère", "").replace("ici", "").trim();
                     
-                    parler("Lancement en arrière-plan du moteur graphique 3D. Récupération de l'élément " + elementAGenerer);
+                    parler("Traitement graphique de l'élément " + elementAGenerer);
 
                     setTimeout(() => {
                         let emoji = "📦"; 
@@ -347,12 +410,16 @@
                         let marqueurHolo = L.marker(coordonneesCibleCourante, { icon: holoIcon }).addTo(map);
                         window[idUniqueHolo] = marqueurHolo;
 
-                        parler("Animation synchronisée au repère G P S précis.");
-                    }, 2000);
+                        parler("Animation projetée au repère spécifié.");
+                    }, 1000);
                 } else {
-                    parler("Directive Cyclone annulée.");
+                    parler("Directive Cyclone non reconnue.");
                 }
-            }, 600);
+            };
+
+            micro.onerror = function() {
+                parler("Erreur de capture audio.");
+            };
         }
 
         function supprimerHologramme(id) {
@@ -407,14 +474,12 @@
             }
         }
 
-        // OUVERTURE PAR NOUVEL ONGLET ADAPTÉE POUR TELEPHONES ANDROID
         function afficherFichierMobile(indexFichier) {
             let listeDocs = [];
             try { listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || []; } catch(e) { return; }
             let doc = listeDocs[indexFichier];
             if(!doc) return;
 
-            // Ouvre un nouvel onglet propre et injecte le document directement dedans
             let nouvelleFenetre = window.open();
             if(nouvelleFenetre) {
                 nouvelleFenetre.document.write(`
@@ -426,8 +491,17 @@
                     </html>
                 `);
             } else {
-                alert("Veuillez autoriser les fenêtres pop-up sur Chrome pour ouvrir les documents !");
+                alert("Veuillez autoriser les fenêtres pop-up.");
             }
+        }
+
+        function supprimerFichierFenetre(indexFichier) {
+            let listeDocs = [];
+            try { listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || []; } catch(e) { return; }
+            listeDocs.splice(indexFichier, 1);
+            localStorage.setItem('hunger_docs', JSON.stringify(listeDocs));
+            parler("Document définitivement supprimé.");
+            chargerDocumentsGraphiques();
         }
 
         function chargerDocumentsGraphiques() {
@@ -444,11 +518,15 @@
                 zone.innerHTML += `
                     <div class="doc-item">
                         <span>📄 <b>${doc.nom}</b></span>
-                        <div class="doc-link" onclick="afficherFichierMobile(${index})">OUVRIR</div>
+                        <div class="doc-controls">
+                            <div class="doc-link" onclick="afficherFichierMobile(${index})">OUVRIR</div>
+                            <div class="doc-btn-delete" onclick="supprimerFichierFenetre(${index})">SUPPR</div>
+                        </div>
                     </div>`; 
             });
         }
 
+        function abrirDonneesJuge() { ouvrirDonneesJuge(); } 
         function ouvrirDonneesJuge() {
             changerEcran('donnees-screen');
             document.getElementById('btn-ajouter-doc').style.display = "block";
@@ -456,7 +534,7 @@
             chargerDocumentsGraphiques();
         }
 
-        function ouvrirDonneesMembres() {
+        function ouvrirDonneesMembre() {
             changerEcran('donnees-screen');
             document.getElementById('btn-ajouter-doc').style.display = "none";
             document.getElementById('donnees-titre').innerText = "DONNÉES MEMBRE";
@@ -486,14 +564,16 @@
         function ouvrirFluxVideoMembre() {
             changerEcran('membres-video-interface');
             let video = document.getElementById('camera-screen');
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-            .then(stream => { video.srcObject = stream; })
-            .catch(() => { alert("Veuillez autoriser la caméra."); });
+            
+            if(fluxVideoPartage) {
+                video.srcObject = fluxVideoPartage;
+            } else {
+                parler("Aucun flux vidéo actif provenant du poste Juge.");
+                video.srcObject = null;
+            }
         }
 
         function retourMenuMembre() {
-            let video = document.getElementById('camera-screen');
-            if(video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
             changerEcran('membres-menu-screen');
         }
 
