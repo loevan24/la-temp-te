@@ -61,7 +61,6 @@
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
         }
 
-        /* MAP JUGE */
         #juge-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 5; }
         #hud-header {
             background: var(--bg-trans-dark); padding: 14px; text-align: center;
@@ -77,7 +76,6 @@
         #map-container { flex: 1; position: relative; width: 100%; height: 100%; }
         #map { width: 100%; height: 100%; background: #010610; filter: grayscale(100%) brightness(70%) sepia(100%) hue-rotate(165deg) saturate(700%); }
 
-        /* Ajustement des panneaux pour la visibilité mobile */
         .btn-panel { position: absolute; z-index: 4000; display: flex; flex-direction: column; gap: 12px; width: calc(100% - 30px); left: 15px; box-sizing: border-box; }
         .top-panels { top: 20px; }
         .bottom-panels { bottom: 30px; }
@@ -93,6 +91,32 @@
             flex: 1; margin: 0; padding: 12px 18px; background: rgba(2, 12, 28, 0.95);
             border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; font-size: 14px;
             box-shadow: 0 0 10px var(--blue-glow);
+        }
+
+        /* Styles des éléments 3D simulés */
+        .holo-object {
+            font-size: 30px;
+            text-align: center;
+            animation: floatHolo 1s infinite alternate ease-in-out;
+        }
+        @keyframes floatHolo {
+            0% { transform: translateY(0); filter: drop-shadow(0 0 2px var(--cyan-hopo)); }
+            100% { transform: translateY(-5px); filter: drop-shadow(0 0 10px var(--cyan-hopo)); }
+        }
+
+        .delete-holo-btn {
+            background: red; color: white; border: none; font-weight: bold;
+            border-radius: 50%; width: 18px; height: 18px; font-size: 10px;
+            position: absolute; top: -10px; right: -10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 5px rgba(255,0,0,0.8);
+        }
+
+        /* Label des traceurs */
+        .tracker-label {
+            background: rgba(1, 6, 16, 0.8); border: 1px solid #ff0055;
+            color: #ff0055; padding: 2px 6px; font-size: 10px; font-weight: bold;
+            border-radius: 4px; font-family: monospace; text-shadow: 0 0 5px #ff0055;
         }
 
         .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); }
@@ -163,14 +187,14 @@
             
             <div class="btn-panel top-panels">
                 <div class="search-bar-container">
-                    <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu (ex: Paris)...">
+                    <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu...">
                     <button class="hud-btn" onclick="rechercherLieu()" style="border-radius: 30px; padding: 10px 20px;">GO</button>
                 </div>
-                <button class="hud-btn" onclick="parler('Recherche de participants en cours.')">👥 Connecter des participants</button>
+                <button class="hud-btn" onclick="parler('Recherche des balises masques activée.')">👥 Connecter des participants</button>
             </div>
 
             <div class="btn-panel bottom-panels" style="display: flex; flex-direction: row; justify-content: space-between;">
-                <button class="hud-btn" onclick="parler('Alerte. Cyclone activé sur la zone.')" style="flex: 1; margin-right: 10px;">🌪️ CYCLONE</button>
+                <button class="hud-btn" onclick="declencherCycloneIntelligent()" style="flex: 1; margin-right: 10px;">🌪️ CYCLONE</button>
                 <button class="hud-btn" id="btn-discours" onclick="basculerEnregistrement()" style="flex: 1; border-color: #ff0055; color: #ff0055;">🎙️ DISCOURS</button>
             </div>
         </div>
@@ -188,6 +212,35 @@
         let mediaRecorder;
         let audioChunks = [];
         let estEnregistrement = false;
+        
+        let marqueurCibleUnique = null; // Stocke la cible courante pour effacer l'ancienne
+        let coordonneesCibleCourante = null;
+
+        // Générateur de bruits audio via le processeur audio du Redmi
+        function genererBruitageTactique(type) {
+            let ctx = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = ctx.createOscillator();
+            let gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if(type === 'miaulement') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.start(); osc.stop(ctx.currentTime + 0.4);
+            } else if(type === 'chute') {
+                // Bruit sourd de craquement
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, ctx.currentTime + 0.8);
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+                osc.start(); osc.stop(ctx.currentTime + 0.9);
+            }
+        }
 
         function parler(texte) {
             if ('speechSynthesis' in window) {
@@ -195,7 +248,7 @@
                 let message = new SpeechSynthesisUtterance(texte);
                 message.lang = 'fr-FR';
                 message.pitch = 0.6; 
-                message.rate = 0.9;
+                message.rate = 0.95;
                 window.speechSynthesis.speak(message);
             }
         }
@@ -207,7 +260,6 @@
             document.getElementById('donnees-screen').style.display = 'none';
             document.getElementById('membres-video-interface').style.display = 'none';
             document.getElementById('juge-interface').style.display = 'none';
-
             document.getElementById(idEcranAFFICHER).style.display = 'flex';
         }
 
@@ -216,7 +268,7 @@
             let mdp = document.getElementById('password').value;
             if (!user) return;
 
-            parler("Initialisation du système. Connexion de " + user);
+            parler("Connexion au terminal de La Tempête.");
 
             setTimeout(() => {
                 if (mdp === "Poudlard-12241223") {
@@ -226,7 +278,7 @@
                     typeUtilisateur = "membre";
                     changerEcran('membres-menu-screen');
                 } else {
-                    alert("ACCÈS SÉCURISÉ : CLÉ INCORRECTE");
+                    alert("ACCÈS SECURISE : CLE DE CRYPTAGE INCORRECTE");
                 }
             }, 1500); 
         }
@@ -236,14 +288,93 @@
             
             if (!map) {
                 setTimeout(() => {
-                    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.4244, 4.7552], 16);
+                    // Centrage automatique par défaut au Skatepark de Saint-Alban-du-Rhône (45.4262, 4.7565)
+                    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.4262, 4.7565], 17);
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
 
+                    // CLIC UNIQUE CORRIGE
                     map.on('click', function(e) {
-                        L.marker(e.latlng).addTo(map).bindPopup("<b>Zone ciblée</b>").openPopup();
-                        parler("Zone verrouillée.");
+                        if (marqueurCibleUnique) {
+                            map.removeLayer(marqueurCibleUnique); // Supprime l'ancienne cible
+                        }
+                        
+                        coordonneesCibleCourante = e.latlng;
+                        marqueurCibleUnique = L.marker(e.latlng).addTo(map).bindPopup("<b style='color:#00f0ff;'>Zone ciblée</b>").openPopup();
+                        parler("Zone ciblée.");
                     });
+
+                    // Simulation Système de Traceurs GPS pour Masques Autonomes
+                    simulerMasquesGps([45.4264, 4.7560], "Masque Alpha [01]");
+                    simulerMasquesGps([45.4260, 4.7570], "Masque Bravo [02]");
                 }, 300);
+            }
+        }
+
+        function simulerMasquesGps(coordsInitiales, nomTraceur) {
+            let markerLabel = L.divIcon({
+                html: `<div class="tracker-label">📍 ${nomTraceur}</div>`,
+                className: 'custom-tracker',
+                iconSize: [100, 20]
+            });
+            let masqueMarker = L.marker(coordsInitiales, { icon: markerLabel }).addTo(map);
+
+            // Simule de légers déplacements réguliers en temps réel
+            setInterval(() => {
+                let currentLat = masqueMarker.getLatLng().lat + (Math.random() - 0.5) * 0.0001;
+                let currentLng = masqueMarker.getLatLng().lng + (Math.random() - 0.5) * 0.0001;
+                masqueMarker.setLatLng([currentLat, currentLng]);
+            }, 3000);
+        }
+
+        function declencherCycloneIntelligent() {
+            if(!coordonneesCibleCourante) {
+                parler("Erreur. Aucune zone ciblée sur l'écran pour initier le Cyclone.");
+                return;
+            }
+
+            parler("Système Cyclone en attente. Que dois-je générer ?");
+            
+            setTimeout(() => {
+                let reponseJuge = prompt("Cyclone System - Entrer votre directive (Ex: génère l'animation de un chat roux ici) :");
+                
+                if (reponseJuge && reponseJuge.includes("génère l'animation de")) {
+                    // Extraction du contenu situé dans (...)
+                    let elementAGenerer = reponseJuge.replace("génère l'animation de", "").replace("ici", "").trim();
+                    
+                    parler("Lancement en arrière-plan du moteur graphique 3D. Récupération de l'élément " + elementAGenerer);
+
+                    setTimeout(() => {
+                        // Choix de l'emoji selon le texte du Juge
+                        let emoji = "📦"; 
+                        if(elementAGenerer.includes("chat")) { emoji = "🐈"; genererBruitageTactique('miaulement'); }
+                        if(elementAGenerer.includes("arbre")) { emoji = "🌳"; genererBruitageTactique('chute'); }
+
+                        // On efface la cible pour y injecter l'animation 3D à la place
+                        if (marqueurCibleUnique) { map.removeLayer(marqueurCibleUnique); marqueurCibleUnique = null; }
+
+                        let idUniqueHolo = 'holo_' + Date.now();
+                        let holoIcon = L.divIcon({
+                            html: `<div id="${idUniqueHolo}" class="holo-object">${emoji}<button class="delete-holo-btn" onclick="supprimerHologramme('${idUniqueHolo}')">X</button></div>`,
+                            className: 'custom-holo',
+                            iconSize: [50, 50],
+                            iconAnchor: [25, 25]
+                        });
+
+                        let marqueurHolo = L.marker(coordonneesCibleCourante, { icon: holoIcon }).addTo(map);
+                        window[idUniqueHolo] = marqueurHolo; // Permet la suppression dynamique globale
+
+                        parler("Animation synchronisée au repère G P S précis.");
+                    }, 2000);
+                } else {
+                    parler("Directive Cyclone annulée ou format incorrect.");
+                }
+            }, 500);
+        }
+
+        function supprimerHologramme(id) {
+            if(window[id]) {
+                map.removeLayer(window[id]);
+                parler("Suppression de l'animation.");
             }
         }
 
@@ -258,134 +389,4 @@
                     let lat = parseFloat(data[0].lat);
                     let lon = parseFloat(data[0].lon);
                     map.setView([lat, lon], 17);
-                    parler("Déplacement satellite vers " + query);
-                } else {
-                    parler("Lieu introuvable.");
-                }
-            }).catch(() => { parler("Erreur de connexion satellite."); });
-        }
-
-        function basculerEnregistrement() {
-            let btn = document.getElementById('btn-discours');
-            if (!estEnregistrement) {
-                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => {
-                        let audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                        let audioUrl = URL.createObjectURL(audioBlob);
-                        let audio = new Audio(audioUrl);
-                        parler("Diffusion du discours modulé.");
-                        setTimeout(() => { audio.play(); }, 1500);
-                    };
-                    mediaRecorder.start();
-                    estEnregistrement = true;
-                    btn.innerText = "🛑 ARRÊTER";
-                    btn.style.background = "rgba(255,0,0,0.3)";
-                }).catch(() => { alert("Veuillez autoriser le micro."); });
-            } else {
-                if(mediaRecorder) mediaRecorder.stop();
-                estEnregistrement = false;
-                btn.innerText = "🎙️ DISCOURS";
-                btn.style.background = "transparent";
-            }
-        }
-
-        function chargerDocumentsGraphiques() {
-            let zone = document.getElementById('zone-documents');
-            let listeDocs = [];
-            
-            try {
-                listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
-            } catch(e) {
-                listeDocs = [];
-            }
-
-            if(listeDocs.length === 0) {
-                zone.innerHTML = `<div class="doc-item" style="color: gray; text-align: center;">Aucun document partagé.</div>`;
-                return;
-            }
-            zone.innerHTML = "";
-            listeDocs.forEach((doc, index) => { 
-                zone.innerHTML += `
-                    <div class="doc-item">
-                        <span>📄 <b>${doc.nom}</b></span>
-                        <a href="${doc.data}" download="${doc.nom}" class="doc-link">OUVRIR</a>
-                    </div>`; 
-            });
-        }
-
-        function ouvrirDonneesJuge() {
-            changerEcran('donnees-screen');
-            document.getElementById('btn-ajouter-doc').style.display = "block";
-            document.getElementById('donnees-titre').innerText = "DONNÉES JUGE";
-            chargerDocumentsGraphiques();
-        }
-
-        function abrirDonneesMembre() {
-            changerEcran('donnees-screen');
-            document.getElementById('btn-ajouter-doc').style.display = "none";
-            document.getElementById('donnees-titre').innerText = "DONNÉES MEMBRE";
-            chargerDocumentsGraphiques();
-        }
-
-        function importerFichier(event) {
-            let file = event.target.files[0];
-            if (!file) return;
-            
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                let listeDocs = [];
-                try {
-                    listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
-                } catch(err) {
-                    listeDocs = [];
-                }
-
-                listeDocs.push({ 
-                    nom: file.name, 
-                    taille: (file.size / 1024).toFixed(1) + " KB",
-                    data: e.target.result // Sauvegarde le contenu réel pour pouvoir l'ouvrir
-                });
-                localStorage.setItem('hunger_docs', JSON.stringify(listeDocs));
-                chargerDocumentsGraphiques();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function fermerFenetreDonnees() {
-            if(typeUtilisateur === "juge") changerEcran('launch-screen');
-            else changerEcran('membres-menu-screen');
-        }
-
-        function ouvrirFluxVideoMembre() {
-            changerEcran('membres-video-interface');
-            let video = document.getElementById('camera-screen');
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-            .then(stream => { video.srcObject = stream; })
-            .catch(() => { alert("Veuillez autoriser la caméra."); });
-        }
-
-        function retourMenuMembre() {
-            let video = document.getElementById('camera-screen');
-            if(video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-            changerEcran('membres-menu-screen');
-        }
-
-        function ouvrirEditeurDeCode() {
-            document.getElementById('editor-textarea').value = document.documentElement.outerHTML;
-            document.getElementById('editor-modal').style.display = 'flex';
-        }
-
-        function sauvegarderLeCode() {
-            let codeMiseAJour = document.getElementById('editor-textarea').value;
-            document.open(); document.write(codeMiseAJour); document.close();
-        }
-    </script>
-</body>
-</html>
-
-
+                    parler("Recalage des satellites de surveillance sur "
