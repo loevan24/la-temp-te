@@ -5,14 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
     <title>La Tempête - Tactical System</title>
     
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         :root {
             --cyan-hopo: #00f0ff;
-            --blue-glow: rgba(0, 240, 255, 0.4);
-            --bg-trans-dark: rgba(2, 12, 28, 0.9);
+            --blue-glow: rgba(0, 240, 255, 0.5);
+            --bg-trans-dark: rgba(2, 12, 28, 0.95);
         }
 
         body, html {
@@ -55,6 +58,7 @@
             width: 100%; padding: 14px; margin: 8px 0; background: rgba(0, 240, 255, 0.1);
             border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo);
             font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
         }
 
         /* MAP JUGE */
@@ -62,7 +66,7 @@
         #hud-header {
             background: var(--bg-trans-dark); padding: 14px; text-align: center;
             border-bottom: 2px solid var(--cyan-hopo); font-weight: 900; letter-spacing: 3px;
-            position: relative; z-index: 5000;
+            position: relative; z-index: 5000; box-shadow: 0 0 15px var(--blue-glow);
         }
         .btn-edit-code {
             position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
@@ -70,27 +74,30 @@
             padding: 6px 14px; cursor: pointer; font-weight: bold; z-index: 5001;
         }
 
-        #map-container { flex: 1; position: relative; }
+        #map-container { flex: 1; position: relative; width: 100%; height: 100%; }
         #map { width: 100%; height: 100%; background: #010610; filter: grayscale(100%) brightness(70%) sepia(100%) hue-rotate(165deg) saturate(700%); }
 
-        .btn-panel { position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: calc(100% - 30px); left: 15px; }
-        .top-panels { top: 15px; }
-        .bottom-panels { bottom: 20px; }
+        /* Ajustement des panneaux pour la visibilité mobile */
+        .btn-panel { position: absolute; z-index: 4000; display: flex; flex-direction: column; gap: 12px; width: calc(100% - 30px); left: 15px; box-sizing: border-box; }
+        .top-panels { top: 20px; }
+        .bottom-panels { bottom: 30px; }
 
         .hud-btn {
-            background: rgba(2, 12, 28, 0.85); border: 2px solid var(--cyan-hopo);
-            color: var(--cyan-hopo); padding: 12px 15px; border-radius: 30px; font-size: 12px; font-weight: bold;
+            background: rgba(2, 12, 28, 0.9); border: 2px solid var(--cyan-hopo);
+            color: var(--cyan-hopo); padding: 14px 15px; border-radius: 30px; font-size: 13px; font-weight: bold;
+            box-shadow: 0 0 15px var(--blue-glow); text-transform: uppercase;
+        }
+
+        .search-bar-container { display: flex; gap: 8px; width: 100%; }
+        .search-input {
+            flex: 1; margin: 0; padding: 12px 18px; background: rgba(2, 12, 28, 0.95);
+            border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; font-size: 14px;
             box-shadow: 0 0 10px var(--blue-glow);
         }
 
-        .search-bar-container { display: flex; gap: 5px; width: 100%; }
-        .search-input {
-            flex: 1; margin: 0; padding: 10px; background: rgba(2, 12, 28, 0.9);
-            border: 2px solid var(--cyan-hopo); color: var(--cyan-hopo); border-radius: 30px; font-size: 13px;
-        }
-
-        .doc-list { text-align: left; margin-top: 15px; max-height: 180px; overflow-y: auto; border: 1px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.4); }
-        .doc-item { padding: 8px; border-bottom: 1px solid rgba(0,240,255,0.2); font-family: monospace; font-size: 13px; word-break: break-all; }
+        .doc-list { text-align: left; margin-top: 15px; max-height: 220px; overflow-y: auto; border: 2px dashed var(--cyan-hopo); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); }
+        .doc-item { padding: 10px; border-bottom: 1px solid rgba(0,240,255,0.3); font-family: monospace; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+        .doc-link { color: #00ff55; text-decoration: none; font-weight: bold; border: 1px solid #00ff55; padding: 4px 8px; border-radius: 4px; background: rgba(0,255,85,0.1); }
 
         #camera-screen { width: 100%; height: 50vh; border: 2px solid var(--cyan-hopo); background: #000; border-radius: 12px; object-fit: cover; }
         #editor-modal { display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; background: var(--bg-trans-dark); border: 2px solid var(--cyan-hopo); z-index: 100000; border-radius: 12px; flex-direction: column; padding: 15px; box-sizing: border-box; }
@@ -112,6 +119,7 @@
 
     <div id="login-screen" class="screen" style="display: flex;">
         <div class="login-box">
+            <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
             <h2 style="letter-spacing: 2px; margin-bottom: 20px;">LA TEMPÊTE SYSTEM</h2>
             <input type="text" id="username" placeholder="IDENTIFIANT">
             <input type="password" id="password" placeholder="MOT DE PASSE">
@@ -136,12 +144,12 @@
     </div>
 
     <div id="donnees-screen" class="screen">
-        <div class="menu-box" style="max-width: 450px;">
+        <div class="menu-box" style="max-width: 450px; width: 90%;">
             <h2 id="donnees-titre">BASE DE DONNÉES</h2>
-            <button id="btn-ajouter-doc" onclick="document.getElementById('file-input').click()" style="display:none; border-color: #00ff55; color: #00ff55; font-size: 12px; padding: 8px; margin-bottom: 10px;">➕ AJOUTER DOCUMENT</button>
+            <button id="btn-ajouter-doc" onclick="document.getElementById('file-input').click()" style="display:none; border-color: #00ff55; color: #00ff55; font-size: 12px; padding: 10px; margin-bottom: 10px;">➕ AJOUTER DOCUMENT</button>
             <input type="file" id="file-input" style="display: none;" onchange="importerFichier(event)">
             <div class="doc-list" id="zone-documents"></div>
-            <button onclick="fermerFenetreDonnees()" style="margin-top: 15px; font-size: 11px; padding: 8px;">RETOUR</button>
+            <button onclick="fermerFenetreDonnees()" style="margin-top: 15px; font-size: 11px; padding: 10px;">RETOUR</button>
         </div>
     </div>
 
@@ -155,7 +163,7 @@
             
             <div class="btn-panel top-panels">
                 <div class="search-bar-container">
-                    <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu (ex: Saint-Alban)...">
+                    <input type="text" id="search-input" class="search-input" placeholder="Entrer un lieu (ex: Paris)...">
                     <button class="hud-btn" onclick="rechercherLieu()" style="border-radius: 30px; padding: 10px 20px;">GO</button>
                 </div>
                 <button class="hud-btn" onclick="parler('Recherche de participants en cours.')">👥 Connecter des participants</button>
@@ -193,7 +201,6 @@
         }
 
         function changerEcran(idEcranAFFICHER) {
-            // Cache tous les écrans principaux pour éviter les superpositions lourdes
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('launch-screen').style.display = 'none';
             document.getElementById('membres-menu-screen').style.display = 'none';
@@ -201,7 +208,6 @@
             document.getElementById('membres-video-interface').style.display = 'none';
             document.getElementById('juge-interface').style.display = 'none';
 
-            // Affiche l'écran demandé
             document.getElementById(idEcranAFFICHER).style.display = 'flex';
         }
 
@@ -228,7 +234,6 @@
         function ouvrirCartographie() {
             changerEcran('juge-interface');
             
-            // On initialise la carte uniquement si elle n'existe pas déjà pour économiser le processeur du Redmi
             if (!map) {
                 setTimeout(() => {
                     map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.4244, 4.7552], 16);
@@ -302,8 +307,12 @@
                 return;
             }
             zone.innerHTML = "";
-            listeDocs.forEach(doc => { 
-                zone.innerHTML += `<div class="doc-item">📄 <b>${doc.nom}</b> (${doc.taille})</div>`; 
+            listeDocs.forEach((doc, index) => { 
+                zone.innerHTML += `
+                    <div class="doc-item">
+                        <span>📄 <b>${doc.nom}</b></span>
+                        <a href="${doc.data}" download="${doc.nom}" class="doc-link">OUVRIR</a>
+                    </div>`; 
             });
         }
 
@@ -314,7 +323,7 @@
             chargerDocumentsGraphiques();
         }
 
-        function ouvrirDonneesMembre() {
+        function abrirDonneesMembre() {
             changerEcran('donnees-screen');
             document.getElementById('btn-ajouter-doc').style.display = "none";
             document.getElementById('donnees-titre').innerText = "DONNÉES MEMBRE";
@@ -325,16 +334,24 @@
             let file = event.target.files[0];
             if (!file) return;
             
-            let listeDocs = [];
-            try {
-                listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
-            } catch(e) {
-                listeDocs = [];
-            }
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let listeDocs = [];
+                try {
+                    listeDocs = JSON.parse(localStorage.getItem('hunger_docs')) || [];
+                } catch(err) {
+                    listeDocs = [];
+                }
 
-            listeDocs.push({ nom: file.name, taille: (file.size / 1024).toFixed(1) + " KB" });
-            localStorage.setItem('hunger_docs', JSON.stringify(listeDocs));
-            chargerDocumentsGraphiques();
+                listeDocs.push({ 
+                    nom: file.name, 
+                    taille: (file.size / 1024).toFixed(1) + " KB",
+                    data: e.target.result // Sauvegarde le contenu réel pour pouvoir l'ouvrir
+                });
+                localStorage.setItem('hunger_docs', JSON.stringify(listeDocs));
+                chargerDocumentsGraphiques();
+            };
+            reader.readAsDataURL(file);
         }
 
         function fermerFenetreDonnees() {
@@ -353,7 +370,7 @@
         function retourMenuMembre() {
             let video = document.getElementById('camera-screen');
             if(video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop()); // Éteint la caméra pour économiser la batterie
+                video.srcObject.getTracks().forEach(track => track.stop());
             }
             changerEcran('membres-menu-screen');
         }
@@ -370,4 +387,5 @@
     </script>
 </body>
 </html>
+
 
